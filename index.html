@@ -207,41 +207,24 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .paste-row .btn:hover  { opacity: .9; }
 .paste-row .btn:active { transform: scale(0.97); }
 
-/* Token */
-.token-wrap { width: 100%; max-width: 520px; }
-.token-toggle {
+/* ── AUTH ── */
+#auth-wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.btn-github {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: 12px; color: rgba(255,255,255,0.35); cursor: pointer;
-  background: rgba(255,255,255,0.05);
-  border: 0.5px solid rgba(255,255,255,0.10);
-  padding: 7px 12px; border-radius: 8px;
-  font-family: var(--font); transition: all .15s;
+  height: 40px; padding: 0 20px; border-radius: 8px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.8); font: 13px/1 var(--font); cursor: pointer;
+  transition: background .15s;
 }
-.token-toggle:hover {
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.5);
-  border-color: rgba(255,255,255,0.15);
+.btn-github:hover { background: rgba(255,255,255,0.13); }
+.btn-github svg { width: 18px; height: 18px; }
+.auth-user { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.45); }
+.auth-user strong { color: rgba(255,255,255,0.75); }
+.btn-signout {
+  background: transparent; border: none; color: rgba(255,255,255,0.3);
+  font-size: 12px; cursor: pointer; padding: 0; transition: color .15s;
 }
-.token-toggle strong { font-weight: 500; color: rgba(255,255,255,0.55); }
-.token-toggle span.hint { font-size: 11px; opacity: .6; }
-.token-icon { width: 16px; height: 16px; display: inline-block; }
-.token-row { display: flex; gap: 8px; margin-top: 10px; }
-.token-row .input {
-  flex: 1; height: 34px; padding: 0 10px; font-size: 12px;
-  font-family: var(--mono);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 8px; color: rgba(255,255,255,0.7); outline: none;
-}
-.token-row .input:focus { border-color: rgba(0,210,150,0.4); }
-.token-row .btn {
-  height: 34px; padding: 0 14px; font-size: 12px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px; color: rgba(255,255,255,0.55);
-  cursor: pointer; font-family: var(--font); transition: background .13s;
-}
-.token-row .btn:hover { background: rgba(255,255,255,0.12); }
+.btn-signout:hover { color: rgba(255,255,255,0.6); }
 
 .rate-info {
   font-size: 12px; color: rgba(255,255,255,0.25);
@@ -251,6 +234,47 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .rate-info .badge     { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.1); }
 .rate-info .badge-warn { background: rgba(255,180,0,0.12); color: #ffb84d; border-color: rgba(255,180,0,0.2); }
 .rate-info .badge-err  { background: rgba(255,80,80,0.12); color: #ff7070; border-color: rgba(255,80,80,0.2); }
+
+/* ── DEVICE CODE MODAL ── */
+#deviceModal {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+}
+.device-card {
+  background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px; padding: 32px; width: 340px; text-align: center;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.device-card-title { font-size: 15px; font-weight: 600; color: #fff; }
+.device-card-sub   { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.6; }
+.device-code {
+  font-family: var(--mono); font-size: 26px; font-weight: 700;
+  color: #00d296; letter-spacing: .12em;
+  background: rgba(0,210,150,0.08); border: 1px solid rgba(0,210,150,0.2);
+  border-radius: 10px; padding: 14px; cursor: pointer; user-select: all;
+  transition: background .15s;
+}
+.device-code:hover { background: rgba(0,210,150,0.14); }
+.device-code-hint  { font-size: 11px; color: rgba(255,255,255,0.25); }
+.btn-open-github {
+  height: 40px; border-radius: 8px;
+  background: linear-gradient(135deg, #00d296, #00a8e8);
+  border: none; color: #000; font-weight: 600; font-size: 13px;
+  cursor: pointer; font-family: var(--font); transition: opacity .15s;
+}
+.btn-open-github:hover { opacity: .9; }
+.device-waiting { font-size: 12px; color: rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.device-waiting .spin { animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.device-err { font-size: 12px; color: #f87171; min-height: 16px; }
+.btn-device-cancel {
+  background: transparent; border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 8px; color: rgba(255,255,255,0.4); font-size: 12px;
+  cursor: pointer; font-family: var(--font); padding: 8px;
+  transition: background .13s;
+}
+.btn-device-cancel:hover { background: rgba(255,255,255,0.06); }
 
 
 
@@ -353,29 +377,41 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
     </div>
   </div>
 
-  <div class="token-wrap">
-    <button class="token-toggle" id="token-toggle">
-      <svg class="token-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m6.08 0l4.24-4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m6.08 0l4.24 4.24"/>
-      </svg>
-      <div style="text-align:left">
-        <strong>GitHub token</strong>
-        <div class="hint">(5 000 req/hr vs 60)</div>
-      </div>
-    </button>
-    <div id="token-panel" class="hidden">
-      <div class="token-row">
-        <input id="token-input" class="input input-sm" type="password"
-          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
-        <button class="btn btn-sm" id="btn-token-save">Save</button>
-        <button class="btn btn-sm" id="btn-token-clear">Clear</button>
-      </div>
+  <div id="auth-wrap">
+    <div id="auth-signed-out">
+      <button class="btn-github" id="btn-signin">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        Sign in with GitHub
+      </button>
+    </div>
+    <div id="auth-signed-in" class="auth-user hidden">
+      Signed in as <strong id="gh-username"></strong>
+      <button class="btn-signout" id="btn-signout">Sign out</button>
     </div>
   </div>
 
   <div class="rate-info" id="rate-info"></div>
 
+</div>
+
+<!-- ═══════════════════════════════════════
+     DEVICE CODE MODAL
+═══════════════════════════════════════ -->
+<div id="deviceModal" class="hidden">
+  <div class="device-card">
+    <div class="device-card-title">Authorize Git HTML Viewer</div>
+    <p class="device-card-sub">Copy the code below, then open GitHub to authorize.</p>
+    <div class="device-code" id="device-code-display" title="Click to copy">XXXX-XXXX</div>
+    <div class="device-code-hint">Click code to copy &middot; expires in 15 min</div>
+    <button class="btn-open-github" id="btn-open-device">Open github.com/login/device &rarr;</button>
+    <div class="device-waiting" id="device-waiting">
+      <span class="spin">&#8635;</span> Waiting for authorization&hellip;
+    </div>
+    <div class="device-err" id="device-err"></div>
+    <button class="btn-device-cancel" id="btn-device-cancel">Cancel</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -514,7 +550,126 @@ function dirOf(path) {
 
 let rateLimitRemaining = null;
 let rateLimitReset     = null;
-let _token = localStorage.getItem('hp_token') || '';
+let activeToken = '';
+
+const GITHUB_CLIENT_ID = 'Ov23lisfiJYFEnfB7fnR';
+const GITHUB_SCOPE     = 'repo';
+// Deploy cloudflare-worker.js to Cloudflare Workers, paste the *.workers.dev URL here:
+const OAUTH_PROXY      = 'https://githubappcors.vlas2007.workers.dev';
+
+let _pollAbort = null;
+
+async function startDeviceFlow() {
+  document.getElementById('device-err').textContent = '';
+  document.getElementById('device-waiting').classList.remove('hidden');
+  try {
+    if (!OAUTH_PROXY) throw new Error('OAUTH_PROXY not set — deploy cloudflare-worker.js and paste the URL in gitHtml-viewer.html');
+    const res = await fetch(OAUTH_PROXY + '/login/device/code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: `client_id=${GITHUB_CLIENT_ID}&scope=${GITHUB_SCOPE}`
+    });
+    if (!res.ok) throw new Error('GitHub returned ' + res.status);
+    const { device_code, user_code, verification_uri, interval = 5 } = await res.json();
+    showDeviceModal(user_code, verification_uri);
+    pollForToken(device_code, interval);
+  } catch (e) {
+    document.getElementById('deviceModal').classList.remove('hidden');
+    setDeviceError('Failed to start: ' + (e.message || e));
+  }
+}
+
+function pollForToken(device_code, interval) {
+  _pollAbort = new AbortController();
+  const signal = _pollAbort.signal;
+  let delay = interval * 1000;
+
+  async function tick() {
+    if (signal.aborted) return;
+    try {
+      const res = await fetch(OAUTH_PROXY + '/login/oauth/access_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        body: `client_id=${GITHUB_CLIENT_ID}&device_code=${encodeURIComponent(device_code)}&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code`
+      });
+      const raw = await res.text();
+      if (!res.ok) { setDeviceError('Error ' + res.status + ': ' + raw.slice(0, 120)); return; }
+      let data;
+      try { data = JSON.parse(raw); } catch { data = {}; }
+      if (signal.aborted) return;
+
+      if (data.access_token) {
+        activeToken = data.access_token;
+        sessionStorage.setItem('ghv-token', activeToken);
+        hideDeviceModal();
+        await fetchUserInfo();
+        const initUrl = getUrlFromLocation();
+        if (initUrl) preview(initUrl);
+        else { setState('landing'); initRateLimit(); }
+        return;
+      }
+
+      const ghErr = data.error;
+      if (!ghErr || ghErr === 'authorization_pending') { /* keep polling */ }
+      else if (ghErr === 'slow_down')     { delay = Math.min(delay + 5000, 30000); }
+      else if (ghErr === 'expired_token') { setDeviceError('Code expired — try again'); return; }
+      else if (ghErr === 'access_denied') { setDeviceError('Access denied'); return; }
+      else { setDeviceError('GitHub error: ' + ghErr); return; }
+
+    } catch (fetchErr) {
+      console.error('[oauth] poll fetch error:', fetchErr);
+      setDeviceError('Network error: ' + fetchErr.message);
+      return;
+    }
+    if (!signal.aborted) setTimeout(tick, delay);
+  }
+
+  setTimeout(tick, delay);
+}
+
+async function fetchUserInfo() {
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `token ${activeToken}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const { login } = await res.json();
+    sessionStorage.setItem('ghv-user', login);
+    setAuthUser(login);
+  } catch {}
+}
+
+function setAuthUser(login) {
+  document.getElementById('auth-signed-out').classList.add('hidden');
+  document.getElementById('auth-signed-in').classList.remove('hidden');
+  document.getElementById('gh-username').textContent = '@' + login;
+}
+
+function clearAuth() {
+  activeToken = '';
+  sessionStorage.removeItem('ghv-token');
+  sessionStorage.removeItem('ghv-user');
+  document.getElementById('auth-signed-in').classList.add('hidden');
+  document.getElementById('auth-signed-out').classList.remove('hidden');
+}
+
+function showDeviceModal(userCode, verifyUrl) {
+  document.getElementById('device-code-display').textContent = userCode;
+  document.getElementById('device-err').textContent = '';
+  document.getElementById('device-waiting').classList.remove('hidden');
+  document.getElementById('btn-open-device').onclick = () => window.open(verifyUrl, '_blank', 'noopener');
+  document.getElementById('deviceModal').classList.remove('hidden');
+}
+
+function hideDeviceModal() {
+  document.getElementById('deviceModal').classList.add('hidden');
+  if (_pollAbort) { _pollAbort.abort(); _pollAbort = null; }
+}
+
+function setDeviceError(msg) {
+  document.getElementById('device-err').textContent = msg;
+  document.getElementById('device-waiting').classList.add('hidden');
+}
 
 class HttpError extends Error {
   constructor(status, msg) { super(msg); this.status = status; }
@@ -599,7 +754,7 @@ async function ghBlobB64(ref, sha) {
 
 async function ghJSON(url) {
   const headers = { Accept: 'application/vnd.github.v3+json' };
-  if (_token) headers.Authorization = `token ${_token}`;
+  if (activeToken) headers.Authorization = `token ${activeToken}`;
   const res = await fetch(url, { headers });
 
   const rem = res.headers.get('X-RateLimit-Remaining');
@@ -625,7 +780,7 @@ async function ghJSON(url) {
 async function initRateLimit() {
   try {
     const headers = { Accept: 'application/vnd.github.v3+json' };
-    if (_token) headers.Authorization = `token ${_token}`;
+    if (activeToken) headers.Authorization = `token ${activeToken}`;
     const res = await fetch('https://api.github.com/rate_limit', { headers });
     const rem = res.headers.get('X-RateLimit-Remaining');
     const rst = res.headers.get('X-RateLimit-Reset');
@@ -654,7 +809,7 @@ async function glFetch(ref) {
   const file  = enc(ref.path);
   const url   = `https://gitlab.com/api/v4/projects/${proj}/repository/files/${file}/raw?ref=${enc(ref.branch)}`;
   const headers = {};
-  if (_token) headers['PRIVATE-TOKEN'] = _token;
+  if (activeToken) headers['PRIVATE-TOKEN'] = activeToken;
   const res = await fetch(url, { headers });
   
   if (!res.ok) {
@@ -1008,9 +1163,8 @@ function showError(err) {
     $errorMsg.textContent   = err.message;
     $errorHint.classList.remove('hidden');
     $errorHint.innerHTML =
-      `Add a GitHub Personal Access Token to get 5 000 req/hr instead of 60.<br>
-       Go to <code>github.com → Settings → Developer settings → Personal access tokens</code>,
-       create a token with <code>public_repo</code> read access, paste it above (Home → token).`;
+      `Sign in with your GitHub account to get 5,000 req/hr and private repo access.<br>
+       Click <code>Sign in with GitHub</code> on the home screen.`;
   } else if (err.status === 404) {
     $errorTitle.textContent = 'File not found';
     $errorMsg.textContent   = err.message || 'The file could not be found in the repository.';
@@ -1155,21 +1309,20 @@ $urlInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btn-preview').click();
 });
 
-/* Token */
-document.getElementById('token-toggle').addEventListener('click', () => {
-  const panel = document.getElementById('token-panel');
-  panel.classList.toggle('hidden');
+/* Auth */
+document.getElementById('btn-signin').addEventListener('click', startDeviceFlow);
+
+document.getElementById('btn-signout').addEventListener('click', () => {
+  clearAuth();
+  setState('landing');
+  initRateLimit();
 });
-document.getElementById('btn-token-save').addEventListener('click', () => {
-  const val = document.getElementById('token-input').value.trim();
-  _token = val;
-  localStorage.setItem('hp_token', val);
-  document.getElementById('token-panel').classList.add('hidden');
-});
-document.getElementById('btn-token-clear').addEventListener('click', () => {
-  _token = '';
-  localStorage.removeItem('hp_token');
-  document.getElementById('token-input').value = '';
+
+document.getElementById('btn-device-cancel').addEventListener('click', hideDeviceModal);
+
+document.getElementById('device-code-display').addEventListener('click', async () => {
+  const code = document.getElementById('device-code-display').textContent;
+  try { await navigator.clipboard.writeText(code); } catch {}
 });
 
 /* Topbar */
@@ -1215,12 +1368,17 @@ window.addEventListener('popstate', () => {
    INIT
 ══════════════════════════════════════════════════ */
 
-// Restore saved token
-if (_token) document.getElementById('token-input').value = _token;
-
-const initUrl = getUrlFromLocation();
-if (initUrl) preview(initUrl);
-else { setState('landing'); initRateLimit(); }
+(async () => {
+  const savedToken = sessionStorage.getItem('ghv-token');
+  const savedUser  = sessionStorage.getItem('ghv-user');
+  if (savedToken) {
+    activeToken = savedToken;
+    if (savedUser) setAuthUser(savedUser);
+  }
+  const initUrl = getUrlFromLocation();
+  if (initUrl) preview(initUrl);
+  else { setState('landing'); initRateLimit(); }
+})();
 
 </script>
 </body>
