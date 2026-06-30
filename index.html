@@ -225,6 +225,28 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
   font-size: 12px; cursor: pointer; padding: 0; transition: color .15s;
 }
 .btn-signout:hover { color: rgba(255,255,255,0.6); }
+.btn-github:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+#proxy-config { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
+#proxy-url-row { display: flex; gap: 6px; width: 100%; max-width: 380px; }
+#proxy-url-input {
+  flex: 1; height: 34px; padding: 0 10px; font-size: 12px; font-family: var(--font);
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px; color: rgba(255,255,255,0.8); outline: none; transition: border-color .15s;
+}
+#proxy-url-input::placeholder { color: rgba(255,255,255,0.25); }
+#proxy-url-input:focus { border-color: rgba(255,255,255,0.35); }
+#proxy-url-input.input-err { border-color: rgba(255,80,80,0.5); }
+#btn-proxy-save {
+  height: 34px; padding: 0 14px; font-size: 12px; font-weight: 600;
+  background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px; color: rgba(255,255,255,0.8); cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+#btn-proxy-save:hover { background: rgba(255,255,255,0.17); }
+#proxy-hint { font-size: 11px; color: rgba(255,255,255,0.25); text-align: center; }
+#proxy-set-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.3); }
+#proxy-set-host { color: rgba(255,255,255,0.5); font-family: monospace; font-size: 11px; }
+#btn-proxy-change { background: none; border: none; color: rgba(255,255,255,0.25); font-size: 11px; cursor: pointer; padding: 0; transition: color .15s; }
+#btn-proxy-change:hover { color: rgba(255,255,255,0.55); }
 
 .rate-info {
   font-size: 12px; color: rgba(255,255,255,0.25);
@@ -385,6 +407,17 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
         </svg>
         Sign in with GitHub
       </button>
+      <div id="proxy-config">
+        <div id="proxy-url-row">
+          <input id="proxy-url-input" type="url" placeholder="https://xxx.workers.dev" autocomplete="off" spellcheck="false" />
+          <button id="btn-proxy-save">Save</button>
+        </div>
+        <div id="proxy-hint">Worker URL required for sign in</div>
+        <div id="proxy-set-row" class="hidden">
+          Worker: <span id="proxy-set-host"></span>
+          <button id="btn-proxy-change">change</button>
+        </div>
+      </div>
     </div>
     <div id="auth-signed-in" class="auth-user hidden">
       Signed in as <strong id="gh-username"></strong>
@@ -550,74 +583,57 @@ function dirOf(path) {
 
 let rateLimitRemaining = null;
 let rateLimitReset     = null;
-let activeToken = '';
+let sessionId = '';
 
-const GITHUB_CLIENT_ID = 'Ov23lisfiJYFEnfB7fnR';
-const GITHUB_SCOPE     = 'repo';
-// Deploy cloudflare-worker.js to Cloudflare Workers, paste the *.workers.dev URL here:
-const OAUTH_PROXY      = 'https://githubappcors.vlas2007.workers.dev';
-
-let _pollAbort = null;
+let OAUTH_PROXY = localStorage.getItem('ghv-proxy-url') || '';
 
 async function startDeviceFlow() {
   document.getElementById('device-err').textContent = '';
   document.getElementById('device-waiting').classList.remove('hidden');
   try {
-    if (!OAUTH_PROXY) throw new Error('OAUTH_PROXY not set — deploy cloudflare-worker.js and paste the URL in gitHtml-viewer.html');
-    const res = await fetch(OAUTH_PROXY + '/login/device/code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-      body: `client_id=${GITHUB_CLIENT_ID}&scope=${GITHUB_SCOPE}`
-    });
-    if (!res.ok) throw new Error('GitHub returned ' + res.status);
-    const { device_code, user_code, verification_uri, interval = 5 } = await res.json();
+    if (!OAUTH_PROXY) throw new Error('OAUTH_PROXY not set — deploy cloudflare-worker.js');
+    const res = await fetch(OAUTH_PROXY + '/auth/start', { method: 'POST' });
+    if (!res.ok) throw new Error('Worker error ' + res.status);
+    const { session_id, user_code, verification_uri, interval } = await res.json();
     showDeviceModal(user_code, verification_uri);
-    pollForToken(device_code, interval);
+    pollWorkerForAuth(session_id, interval);
   } catch (e) {
     document.getElementById('deviceModal').classList.remove('hidden');
     setDeviceError('Failed to start: ' + (e.message || e));
   }
 }
 
-function pollForToken(device_code, interval) {
-  _pollAbort = new AbortController();
+function pollWorkerForAuth(sid, interval) {
+  let _pollAbort = new AbortController();
   const signal = _pollAbort.signal;
   let delay = interval * 1000;
 
   async function tick() {
     if (signal.aborted) return;
     try {
-      const res = await fetch(OAUTH_PROXY + '/login/oauth/access_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-        body: `client_id=${GITHUB_CLIENT_ID}&device_code=${encodeURIComponent(device_code)}&grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code`
-      });
-      const raw = await res.text();
-      if (!res.ok) { setDeviceError('Error ' + res.status + ': ' + raw.slice(0, 120)); return; }
-      let data;
-      try { data = JSON.parse(raw); } catch { data = {}; }
+      const res  = await fetch(`${OAUTH_PROXY}/auth/poll?sid=${encodeURIComponent(sid)}`);
+      if (!res.ok) { setDeviceError('Worker error ' + res.status); return; }
+      const data = await res.json();
       if (signal.aborted) return;
 
-      if (data.access_token) {
-        activeToken = data.access_token;
-        sessionStorage.setItem('ghv-token', activeToken);
+      if (data.status === 'ok') {
+        sessionId = sid;
+        sessionStorage.setItem('ghv-sid', sid);
+        sessionStorage.setItem('ghv-user', data.login || '');
         hideDeviceModal();
-        await fetchUserInfo();
+        setAuthUser(data.login || '');
         const initUrl = getUrlFromLocation();
         if (initUrl) preview(initUrl);
         else { setState('landing'); initRateLimit(); }
         return;
       }
-
-      const ghErr = data.error;
-      if (!ghErr || ghErr === 'authorization_pending') { /* keep polling */ }
-      else if (ghErr === 'slow_down')     { delay = Math.min(delay + 5000, 30000); }
-      else if (ghErr === 'expired_token') { setDeviceError('Code expired — try again'); return; }
-      else if (ghErr === 'access_denied') { setDeviceError('Access denied'); return; }
-      else { setDeviceError('GitHub error: ' + ghErr); return; }
-
+      if (data.status === 'pending') {
+        delay = (data.interval || interval) * 1000;
+      } else {
+        setDeviceError(data.reason || data.status || 'Auth failed');
+        return;
+      }
     } catch (fetchErr) {
-      console.error('[oauth] poll fetch error:', fetchErr);
       setDeviceError('Network error: ' + fetchErr.message);
       return;
     }
@@ -627,18 +643,6 @@ function pollForToken(device_code, interval) {
   setTimeout(tick, delay);
 }
 
-async function fetchUserInfo() {
-  try {
-    const res = await fetch('https://api.github.com/user', {
-      headers: { Authorization: `token ${activeToken}`, Accept: 'application/vnd.github.v3+json' }
-    });
-    if (!res.ok) return;
-    const { login } = await res.json();
-    sessionStorage.setItem('ghv-user', login);
-    setAuthUser(login);
-  } catch {}
-}
-
 function setAuthUser(login) {
   document.getElementById('auth-signed-out').classList.add('hidden');
   document.getElementById('auth-signed-in').classList.remove('hidden');
@@ -646,11 +650,52 @@ function setAuthUser(login) {
 }
 
 function clearAuth() {
-  activeToken = '';
-  sessionStorage.removeItem('ghv-token');
+  const sid = sessionId;
+  sessionId = '';
+  sessionStorage.removeItem('ghv-sid');
   sessionStorage.removeItem('ghv-user');
   document.getElementById('auth-signed-in').classList.add('hidden');
   document.getElementById('auth-signed-out').classList.remove('hidden');
+  if (sid) {
+    fetch(OAUTH_PROXY + '/auth/signout', {
+      method: 'POST',
+      headers: { 'X-Session-ID': sid },
+    }).catch(() => {});
+  }
+}
+
+function renderProxyConfig() {
+  const hasProxy  = !!OAUTH_PROXY;
+  const urlRow    = document.getElementById('proxy-url-row');
+  const hintEl    = document.getElementById('proxy-hint');
+  const setRow    = document.getElementById('proxy-set-row');
+  const signinBtn = document.getElementById('btn-signin');
+  if (hasProxy) {
+    urlRow.classList.add('hidden');
+    hintEl.classList.add('hidden');
+    setRow.classList.remove('hidden');
+    try { document.getElementById('proxy-set-host').textContent = new URL(OAUTH_PROXY).hostname; }
+    catch { document.getElementById('proxy-set-host').textContent = OAUTH_PROXY; }
+    signinBtn.disabled = false;
+  } else {
+    urlRow.classList.remove('hidden');
+    hintEl.classList.remove('hidden');
+    setRow.classList.add('hidden');
+    signinBtn.disabled = true;
+  }
+}
+
+function saveProxyUrl() {
+  const input = document.getElementById('proxy-url-input');
+  const val   = input.value.trim().replace(/\/+$/, '');
+  if (!val.startsWith('http://') && !val.startsWith('https://')) {
+    input.classList.add('input-err');
+    return;
+  }
+  input.classList.remove('input-err');
+  OAUTH_PROXY = val;
+  localStorage.setItem('ghv-proxy-url', val);
+  renderProxyConfig();
 }
 
 function showDeviceModal(userCode, verifyUrl) {
@@ -753,9 +798,11 @@ async function ghBlobB64(ref, sha) {
 }
 
 async function ghJSON(url) {
+  const pathMatch = url.match(/https:\/\/api\.github\.com(\/.*)/);
+  const workerUrl = pathMatch ? OAUTH_PROXY + '/api/github' + pathMatch[1] : url;
   const headers = { Accept: 'application/vnd.github.v3+json' };
-  if (activeToken) headers.Authorization = `token ${activeToken}`;
-  const res = await fetch(url, { headers });
+  if (sessionId) headers['X-Session-ID'] = sessionId;
+  const res = await fetch(workerUrl, { headers });
 
   const rem = res.headers.get('X-RateLimit-Remaining');
   const rst = res.headers.get('X-RateLimit-Reset');
@@ -780,8 +827,8 @@ async function ghJSON(url) {
 async function initRateLimit() {
   try {
     const headers = { Accept: 'application/vnd.github.v3+json' };
-    if (activeToken) headers.Authorization = `token ${activeToken}`;
-    const res = await fetch('https://api.github.com/rate_limit', { headers });
+    if (sessionId) headers['X-Session-ID'] = sessionId;
+    const res = await fetch(OAUTH_PROXY + '/api/github/rate_limit', { headers });
     const rem = res.headers.get('X-RateLimit-Remaining');
     const rst = res.headers.get('X-RateLimit-Reset');
     if (rem !== null) {
@@ -809,9 +856,10 @@ async function glFetch(ref) {
   const file  = enc(ref.path);
   const url   = `https://gitlab.com/api/v4/projects/${proj}/repository/files/${file}/raw?ref=${enc(ref.branch)}`;
   const headers = {};
-  if (activeToken) headers['PRIVATE-TOKEN'] = activeToken;
-  const res = await fetch(url, { headers });
-  
+  if (sessionId) headers['X-Session-ID'] = sessionId;
+  const workerUrl = OAUTH_PROXY + '/api/github/raw?url=' + encodeURIComponent(url);
+  const res = await fetch(workerUrl, { headers });
+
   if (!res.ok) {
     // Handle rate limit
     if (res.status === 429) {
@@ -1318,6 +1366,19 @@ document.getElementById('btn-signout').addEventListener('click', () => {
   initRateLimit();
 });
 
+document.getElementById('btn-proxy-save').addEventListener('click', saveProxyUrl);
+document.getElementById('proxy-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveProxyUrl(); });
+document.getElementById('btn-proxy-change').addEventListener('click', () => {
+  const input = document.getElementById('proxy-url-input');
+  input.value = OAUTH_PROXY;
+  document.getElementById('proxy-url-row').classList.remove('hidden');
+  document.getElementById('proxy-hint').classList.add('hidden');
+  document.getElementById('proxy-set-row').classList.add('hidden');
+  document.getElementById('btn-signin').disabled = true;
+  input.focus();
+  input.select();
+});
+
 document.getElementById('btn-device-cancel').addEventListener('click', hideDeviceModal);
 
 document.getElementById('device-code-display').addEventListener('click', async () => {
@@ -1369,12 +1430,13 @@ window.addEventListener('popstate', () => {
 ══════════════════════════════════════════════════ */
 
 (async () => {
-  const savedToken = sessionStorage.getItem('ghv-token');
-  const savedUser  = sessionStorage.getItem('ghv-user');
-  if (savedToken) {
-    activeToken = savedToken;
+  const savedSid  = sessionStorage.getItem('ghv-sid');
+  const savedUser = sessionStorage.getItem('ghv-user');
+  if (savedSid) {
+    sessionId = savedSid;
     if (savedUser) setAuthUser(savedUser);
   }
+  renderProxyConfig();
   const initUrl = getUrlFromLocation();
   if (initUrl) preview(initUrl);
   else { setState('landing'); initRateLimit(); }
