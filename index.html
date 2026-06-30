@@ -622,6 +622,8 @@ function pollWorkerForAuth(sid, interval) {
         sessionStorage.setItem('ghv-user', data.login || '');
         hideDeviceModal();
         setAuthUser(data.login || '');
+        document.getElementById('auth-signed-out').classList.add('hidden');
+        document.getElementById('auth-signed-in').classList.remove('hidden');
         renderProxyConfig();
         const initUrl = getUrlFromLocation();
         if (initUrl) preview(initUrl);
