@@ -584,6 +584,7 @@ function dirOf(path) {
 let rateLimitRemaining = null;
 let rateLimitReset     = null;
 let sessionId = '';
+let _pollAbort = null;
 
 let OAUTH_PROXY = localStorage.getItem('ghv-proxy-url') || '';
 
@@ -592,7 +593,7 @@ async function startDeviceFlow() {
   document.getElementById('device-waiting').classList.remove('hidden');
   try {
     if (!OAUTH_PROXY) throw new Error('OAUTH_PROXY not set — deploy cloudflare-worker.js');
-    const res = await fetch(OAUTH_PROXY + '/auth/start', { method: 'POST' });
+    const res = await fetch(OAUTH_PROXY + '/auth/start', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     if (!res.ok) throw new Error('Worker error ' + res.status);
     const { session_id, user_code, verification_uri, interval } = await res.json();
     showDeviceModal(user_code, verification_uri);
@@ -604,7 +605,7 @@ async function startDeviceFlow() {
 }
 
 function pollWorkerForAuth(sid, interval) {
-  let _pollAbort = new AbortController();
+  _pollAbort = new AbortController();
   const signal = _pollAbort.signal;
   let delay = interval * 1000;
 
@@ -848,8 +849,15 @@ async function initRateLimit() {
     if (rem !== null) {
       rateLimitRemaining = parseInt(rem);
       rateLimitReset = rst ? new Date(parseInt(rst) * 1000) : null;
-      renderRateInfo();
+    } else {
+      const data = await res.json();
+      const core = data?.resources?.core ?? data?.rate;
+      if (core?.remaining !== undefined) {
+        rateLimitRemaining = core.remaining;
+        rateLimitReset = core.reset ? new Date(core.reset * 1000) : null;
+      }
     }
+    renderRateInfo();
   } catch {}
 }
 
